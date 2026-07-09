@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "TheVitalya"
+version = "1.0.0"
+id = "artifacts/verachat"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19443
+
+[services.development]
+run = "pnpm --filter @workspace/thevitalya run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/thevitalya", "run", "build" ]
+publicDir = "artifacts/thevitalya/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19443"
+BASE_PATH = "/"

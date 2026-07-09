@@ -1,0 +1,1 @@
+- [theVitalya forum admin/role system](thevitalya-forum-admin.md) — roles enforced client-side + firestore.rules (undeployed); keep rules in sync with forum.ts moderation logic.

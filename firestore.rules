@@ -1,0 +1,124 @@
+rules_version = '2';
+
+// Security rules for the theVITALYA forum.
+//
+// HOW TO APPLY: Firebase Console → your project (thevitalya-39d42) →
+// Firestore Database → Rules tab → paste this file's contents → Publish.
+// The agent cannot publish these for you — it requires direct Firebase
+// project access that isn't available here.
+//
+// Without these rules, the "admin" role stored in forum_users is only
+// enforced by the app's UI, not by the database — anyone could open the
+// browser console and grant themselves admin. These rules make the roles
+// real by enforcing them server-side.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function myUid() {
+      return request.auth.uid;
+    }
+
+    function userDoc(uid) {
+      return get(/databases/$(database)/documents/forum_users/$(uid)).data;
+    }
+
+    function myRole() {
+      return isSignedIn() && exists(/databases/$(database)/documents/forum_users/$(myUid()))
+        ? userDoc(myUid()).role
+        : 'user';
+    }
+
+    function isModerator() {
+      return myRole() == 'owner' || myRole() == 'admin';
+    }
+
+    function isOwner() {
+      return myRole() == 'owner';
+    }
+
+    function isSuperAdminUsername(username) {
+      return username.lower() == 'vitaliy';
+    }
+
+    match /forum_users/{uid} {
+      allow read: if true;
+
+      // Users create their own profile on registration. The role must match
+      // the reserved super-admin bootstrap rule, and nobody can self-assign
+      // "admin".
+      allow create: if isSignedIn() && myUid() == uid
+        && request.resource.data.banned == false
+        && (
+          (isSuperAdminUsername(request.resource.data.username) && request.resource.data.role == 'owner')
+          || (!isSuperAdminUsername(request.resource.data.username) && request.resource.data.role == 'user')
+        );
+
+      // Self-heal: a user may only ever set their OWN role to "owner", and
+      // only if their username is the reserved super-admin username. This
+      // repairs accounts created before roles existed. It can never be used
+      // to grant admin, and it can never touch another user's document.
+      allow update: if isSignedIn() && myUid() == uid
+        && isSuperAdminUsername(resource.data.username)
+        && request.resource.data.role == 'owner'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'banned']);
+
+      // Moderators can ban/unban lower-ranked users; only the owner can
+      // change roles. Nobody can act on their own document via this branch,
+      // and nobody can touch the owner's document.
+      allow update: if isSignedIn() && myUid() != uid
+        && resource.data.role != 'owner'
+        && (
+          (isOwner() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['role', 'banned']))
+          || (myRole() == 'admin' && resource.data.role == 'user'
+              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['banned']))
+        );
+
+      allow delete: if false;
+    }
+
+    function notBanned() {
+      return isSignedIn() && !(exists(/databases/$(database)/documents/forum_users/$(myUid())) && userDoc(myUid()).banned == true);
+    }
+
+    // Only the reply-count and reaction-count counters may be touched by
+    // non-authors (via reply create/delete and reaction-toggle
+    // transactions); everything else about a post/reply is immutable once
+    // created, so nobody can rewrite authorId/title/body to hijack it.
+    function onlyCountersChanged() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount', 'reactions']);
+    }
+
+    match /forum_posts/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn() && notBanned()
+        && request.resource.data.authorId == myUid();
+      allow update: if isSignedIn() && notBanned() && onlyCountersChanged();
+      allow delete: if isSignedIn() && isModerator();
+
+      match /replies/{replyId} {
+        allow read: if true;
+        allow create: if isSignedIn() && notBanned() && request.resource.data.authorId == myUid();
+        allow update: if isSignedIn() && notBanned() && onlyCountersChanged();
+        allow delete: if isSignedIn() && isModerator();
+      }
+    }
+
+    match /forum_reactions/{reactionId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && notBanned() && request.resource.data.userId == myUid();
+      allow update: if isSignedIn() && notBanned() && request.resource.data.userId == myUid() && resource.data.userId == myUid();
+      allow delete: if isSignedIn() && resource.data.userId == myUid();
+    }
+
+    match /guestbook/{entryId} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+  }
+}
