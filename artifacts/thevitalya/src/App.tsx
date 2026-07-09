@@ -446,6 +446,9 @@ const LINKS = [
   { name: "n'useless BOT n.1 👽", cyrillic: "Развлекательный бот",  icon: "👾", url: "https://t.me/NUSELESS_BOT" },
 ];
 
+/* Height of the fixed bottom taskbar (.xp-taskbar) in px — kept in sync with index.css */
+const TASKBAR_HEIGHT = 36;
+
 /* ─── Reusable drag hook ─── */
 function useDrag(initOffset = { x: 0, y: 0 }) {
   const ref  = useRef<HTMLDivElement>(null);
@@ -459,10 +462,14 @@ function useDrag(initOffset = { x: 0, y: 0 }) {
       setReady(true);
       return;
     }
+    // Keep the window's bottom edge above the fixed taskbar (36px, z-index
+    // above windows) so footer controls like the reply form's send button
+    // never end up hidden underneath it.
+    const availableHeight = window.innerHeight - TASKBAR_HEIGHT;
     const maxLeft = Math.max(0, window.innerWidth  - el.offsetWidth);
-    const maxTop  = Math.max(0, window.innerHeight - el.offsetHeight);
+    const maxTop  = Math.max(0, availableHeight - el.offsetHeight);
     const left = (window.innerWidth  - el.offsetWidth)  / 2 + initOffset.x;
-    const top  = (window.innerHeight - el.offsetHeight) / 2 + initOffset.y;
+    const top  = (availableHeight - el.offsetHeight) / 2 + initOffset.y;
     el.style.left = Math.min(Math.max(0, left), maxLeft) + "px";
     el.style.top  = Math.min(Math.max(0, top),  maxTop)  + "px";
     setReady(true);
