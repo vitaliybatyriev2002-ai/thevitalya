@@ -148,7 +148,7 @@ export async function uploadImage(file: File): Promise<string> {
     out = canvas.toDataURL("image/jpeg", quality);
   }
 
-  if (out.length > MAX_IMAGE_DATA_URL_BYTES * 1.2) {
+  if (out.length > MAX_IMAGE_DATA_URL_BYTES) {
     throw new Error("Изображение слишком большое даже после сжатия. Попробуйте файл меньшего разрешения.");
   }
 

@@ -1110,7 +1110,7 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
   useEffect(() => { repliesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [replies]);
 
   const handleImageSelect = (file: File, setter: (f: File | null) => void, previewSetter: (s: string | null) => void) => {
-    if (file.size > 15 * 1024 * 1024) { alert("Файл слишком большой. Максимум 15 МБ."); return; }
+    if (file.size > 15 * 1024 * 1024) { alert("Файл слишком большой. Максимум 15 МБ (изображение будет сжато автоматически)."); return; }
     setter(file);
     const reader = new FileReader();
     reader.onload = (e) => previewSetter(e.target?.result as string);
