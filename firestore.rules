@@ -93,11 +93,17 @@ service cloud.firestore {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['replyCount', 'reactions']);
     }
 
+    // Moderators/owners may pin or unpin a topic; this is the only field a
+    // non-author is allowed to change besides the counters above.
+    function onlyPinnedChanged() {
+      return isModerator() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pinned']);
+    }
+
     match /forum_posts/{postId} {
       allow read: if true;
       allow create: if isSignedIn() && notBanned()
         && request.resource.data.authorId == myUid();
-      allow update: if isSignedIn() && notBanned() && onlyCountersChanged();
+      allow update: if isSignedIn() && notBanned() && (onlyCountersChanged() || onlyPinnedChanged());
       allow delete: if isSignedIn() && isModerator();
 
       match /replies/{replyId} {
