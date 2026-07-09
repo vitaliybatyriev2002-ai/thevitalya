@@ -132,15 +132,21 @@ async function loadAndHealUser(uid: string, fallbackUsername: string): Promise<F
   const snap = await getDoc(ref);
   const data = snap.data() as { username?: string; role?: ForumRole; banned?: boolean } | undefined;
   const username = data?.username ?? fallbackUsername;
-  const storedRole = data?.role; // raw value actually persisted in Firestore, not a fallback
+  const storedRole   = data?.role;   // raw values actually persisted in Firestore, not a fallback
+  const storedBanned = data?.banned;
   let role = storedRole ?? defaultRoleFor(username);
 
   // Heal based on what's ACTUALLY stored, not the locally-computed fallback
-  // above — otherwise the fallback already "looks like" owner and the write
-  // that makes it real in the database never fires.
-  if (isSuperAdminUsername(username) && storedRole !== "owner") {
-    role = "owner";
-    try { await updateDoc(ref, { role: "owner", banned: false }); } catch { /* rules may reject; ignore */ }
+  // above — otherwise the fallback already "looks like" owner/unbanned and
+  // the write that makes it real in the database never fires. Role and ban
+  // are healed independently so either drifted field gets corrected.
+  if (isSuperAdminUsername(username)) {
+    const needsRoleHeal   = storedRole !== "owner";
+    const needsBannedHeal = storedBanned === true;
+    if (needsRoleHeal || needsBannedHeal) {
+      role = "owner";
+      try { await updateDoc(ref, { role: "owner", banned: false }); } catch { /* rules may reject; ignore */ }
+    }
   }
 
   const banned = data?.banned ?? false;
