@@ -102,6 +102,8 @@ service cloud.firestore {
 
       match /replies/{replyId} {
         allow read: if true;
+        // replyTo is an optional client-supplied quote pointer (id/author/snippet
+        // of the message being answered) — same trust level as body/imageUrl.
         allow create: if isSignedIn() && notBanned() && request.resource.data.authorId == myUid();
         allow update: if isSignedIn() && notBanned() && onlyCountersChanged();
         allow delete: if isSignedIn() && isModerator();

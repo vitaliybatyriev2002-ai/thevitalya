@@ -1597,6 +1597,78 @@ body, #root {
   box-shadow: inset 0 1px 3px rgba(58,106,200,.25);
 }
 
+/* ── REPLY-TO / QUOTES / MENTIONS ── */
+.xp-forum-reply-to-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  font-size: 11px;
+  background: linear-gradient(180deg, #f5f4ee 0%, #e8e5d8 100%);
+  border: 1px solid #bbb;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: Tahoma, sans-serif;
+  color: #333;
+}
+.xp-forum-reply-to-btn:hover { background: linear-gradient(180deg, #eef0fa 0%, #d8dcf0 100%); border-color: #7a90d4; color: #002288; }
+
+.xp-forum-mention {
+  color: #0a56c9;
+  background: #e6efff;
+  border-radius: 3px;
+  padding: 0 2px;
+  font-weight: bold;
+}
+
+.xp-forum-quote {
+  margin: 5px 8px 0;
+  padding: 4px 7px;
+  background: #f0f2fa;
+  border-left: 3px solid #7a90d4;
+  border-radius: 2px;
+  font-size: 10px;
+  color: #556;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.xp-forum-quote:hover { background: #e4e9fa; border-left-color: #3a6ac8; }
+.xp-forum-quote-author { font-weight: bold; color: #002288; }
+.xp-forum-quote-snippet { color: #667; white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; }
+
+.xp-forum-reply-quote-preview {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 22px 4px 7px;
+  background: #f0f2fa;
+  border-left: 3px solid #7a90d4;
+  border-radius: 2px;
+  font-size: 10px;
+}
+.xp-forum-reply-quote-preview .xp-forum-img-remove { top: 4px; right: 4px; }
+
+.xp-forum-mention-chip {
+  padding: 1px 7px;
+  font-size: 10px;
+  background: #eef1f8;
+  border: 1px solid #c0c8e0;
+  border-radius: 10px;
+  color: #003399;
+  cursor: pointer;
+  font-family: Tahoma, sans-serif;
+}
+.xp-forum-mention-chip:hover { background: #dce6f8; border-color: #7a90d4; }
+
+@keyframes xpForumFlash {
+  0%   { background: #fff6c8; }
+  100% { background: transparent; }
+}
+.xp-forum-msg-flash .xp-forum-msg-content { animation: xpForumFlash 1.5s ease-out; }
+
 .xp-forum-reaction-count {
   font-size: 11px;
   font-weight: bold;

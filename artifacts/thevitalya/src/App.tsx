@@ -35,10 +35,12 @@ import {
   subscribeToAllUsers,
   setUserRole,
   setUserBanned,
+  splitMentions,
   type ForumUser,
   type ForumPost,
   type ForumReply,
   type ForumAdminUser,
+  type ReplyTarget,
 } from "./lib/forum";
 
 /* ══════════════════════════════════════
@@ -1075,6 +1077,9 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
   const [replyImage, setReplyImage]   = useState<File | null>(null);
   const [replyImagePreview, setReplyImagePreview] = useState<string | null>(null);
   const [replyLoading, setReplyLoading] = useState(false);
+  const [replyingTo, setReplyingTo]   = useState<ReplyTarget | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const replyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const [lightboxUrl, setLightboxUrl]     = useState<string | null>(null);
   const [userReactions, setUserReactions] = useState<Record<string, string>>({});
   const [adminUsers, setAdminUsers]       = useState<ForumAdminUser[]>([]);
@@ -1185,15 +1190,50 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
     try {
       let imageUrl: string | undefined;
       if (replyImage) imageUrl = await uploadImage(replyImage);
-      await createReply(forumUser, selectedPost.id, replyDraft, imageUrl);
-      setReplyDraft(""); setReplyImage(null); setReplyImagePreview(null);
+      await createReply(forumUser, selectedPost.id, replyDraft, imageUrl, replyingTo ?? undefined);
+      setReplyDraft(""); setReplyImage(null); setReplyImagePreview(null); setReplyingTo(null);
     } catch (err) {
       alert(`Не удалось отправить ответ: ${(err as Error).message ?? "неизвестная ошибка"}`);
     } finally { setReplyLoading(false); }
   };
 
-  const openPost = (post: ForumPost) => { setSelectedPost(post); setReplies([]); setView("post"); };
-  const goBack   = () => { setView("posts"); setSelectedPost(null); };
+  // Reply-to-message: quote the target (OP or a reply) and pre-fill a
+  // mention so it's clear who's being addressed, telegram-style.
+  const handleReplyTo = (id: string, author: string, body: string) => {
+    const snippet = body.length > 90 ? `${body.slice(0, 90)}…` : body;
+    setReplyingTo({ id, author, snippet });
+    setReplyDraft(d => (d.trim() ? d : `@${author}, `));
+    requestAnimationFrame(() => {
+      replyTextareaRef.current?.focus();
+      const el = replyTextareaRef.current;
+      if (el) el.setSelectionRange(el.value.length, el.value.length);
+    });
+  };
+
+  const insertMention = (username: string) => {
+    setReplyDraft(d => (d && !d.endsWith(" ") && d.length > 0 ? `${d} @${username} ` : `${d}@${username} `));
+    replyTextareaRef.current?.focus();
+  };
+
+  // Scrolls to and briefly highlights the quoted message when a reply's
+  // quote block is clicked.
+  const scrollToMessage = (id: string) => {
+    const el = document.getElementById(`xp-forum-msg-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightId(id);
+    window.setTimeout(() => setHighlightId(h => (h === id ? null : h)), 1600);
+  };
+
+  const renderBody = (body: string) =>
+    splitMentions(body).map((part, i) =>
+      part.mention
+        ? <span key={i} className="xp-forum-mention">{part.text}</span>
+        : <span key={i}>{part.text}</span>,
+    );
+
+  const openPost = (post: ForumPost) => { setSelectedPost(post); setReplies([]); setReplyingTo(null); setView("post"); };
+  const goBack   = () => { setView("posts"); setSelectedPost(null); setReplyingTo(null); };
 
   const handleDeletePost = async (post: ForumPost, e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -1422,7 +1462,7 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
             </div>
 
             <div className="xp-forum-replies" ref={repliesBodyRef}>
-              <div className="xp-forum-msg xp-forum-msg-op">
+              <div id={`xp-forum-msg-${selectedPost.id}`} className={`xp-forum-msg xp-forum-msg-op${highlightId === selectedPost.id ? " xp-forum-msg-flash" : ""}`}>
                 <div className="xp-forum-msg-sidebar">
                   <div className="xp-forum-avatar">{selectedPost.authorName[0]?.toUpperCase()}</div>
                   <div className="xp-forum-msg-username">{selectedPost.authorName}</div>
@@ -1436,7 +1476,7 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                   </div>
                 </div>
                 <div className="xp-forum-msg-content">
-                  <div className="xp-forum-op-body">{selectedPost.body}</div>
+                  <div className="xp-forum-op-body">{renderBody(selectedPost.body)}</div>
                   {selectedPost.imageUrl && (
                     <div className="xp-forum-msg-img">
                       <img src={selectedPost.imageUrl} alt="вложение" onClick={() => setLightboxUrl(selectedPost.imageUrl!)} />
@@ -1453,13 +1493,16 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                         </button>
                       );
                     })}
+                    {forumUser && (
+                      <button className="xp-forum-reply-to-btn" onClick={() => handleReplyTo(selectedPost.id, selectedPost.authorName, selectedPost.body)}>↩ Ответить</button>
+                    )}
                   </div>
                 </div>
               </div>
 
               {replies.length === 0 && <div className="xp-forum-empty">Ответов пока нет. Будьте первым!</div>}
               {replies.map((r, i) => (
-                <div key={r.id} className="xp-forum-msg">
+                <div key={r.id} id={`xp-forum-msg-${r.id}`} className={`xp-forum-msg${highlightId === r.id ? " xp-forum-msg-flash" : ""}`}>
                   <div className="xp-forum-msg-sidebar">
                     <div className="xp-forum-avatar">{r.authorName[0]?.toUpperCase()}</div>
                     <div className="xp-forum-msg-username">{r.authorName}</div>
@@ -1473,7 +1516,13 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                     </div>
                   </div>
                   <div className="xp-forum-msg-content">
-                    <div className="xp-forum-reply-body">{r.body}</div>
+                    {r.replyTo && (
+                      <div className="xp-forum-quote" onClick={() => scrollToMessage(r.replyTo!.id)}>
+                        <span className="xp-forum-quote-author">↩ Ответ для @{r.replyTo.author}</span>
+                        <span className="xp-forum-quote-snippet">{r.replyTo.snippet}</span>
+                      </div>
+                    )}
+                    <div className="xp-forum-reply-body">{renderBody(r.body)}</div>
                     {r.imageUrl && (
                       <div className="xp-forum-msg-img">
                         <img src={r.imageUrl} alt="вложение" onClick={() => setLightboxUrl(r.imageUrl!)} />
@@ -1490,6 +1539,9 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                           </button>
                         );
                       })}
+                      {forumUser && (
+                        <button className="xp-forum-reply-to-btn" onClick={() => handleReplyTo(r.id, r.authorName, r.body)}>↩ Ответить</button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1499,19 +1551,32 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
 
             <div className="xp-forum-reply-form">
               <div className="xp-forum-reply-form-label">✏️ Ответить в теме</div>
-              <textarea className="xp-forum-textarea" placeholder="Написать ответ…" value={replyDraft} onChange={e => setReplyDraft(e.target.value)} rows={2} />
+              {replyingTo && (
+                <div className="xp-forum-reply-quote-preview">
+                  <span className="xp-forum-quote-author">↩ Ответ для @{replyingTo.author}</span>
+                  <span className="xp-forum-quote-snippet">{replyingTo.snippet}</span>
+                  <button className="xp-forum-img-remove" title="Отменить" onClick={() => setReplyingTo(null)}>✕</button>
+                </div>
+              )}
+              <textarea ref={replyTextareaRef} className="xp-forum-textarea" placeholder="Написать ответ… (@ник чтобы упомянуть участника)" value={replyDraft} onChange={e => setReplyDraft(e.target.value)} rows={2} />
               {replyImagePreview && (
                 <div className="xp-forum-img-preview">
                   <img src={replyImagePreview} alt="preview" onClick={() => setLightboxUrl(replyImagePreview)} />
                   <button className="xp-forum-img-remove" onClick={() => { setReplyImage(null); setReplyImagePreview(null); }}>✕</button>
                 </div>
               )}
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                 <button className="xp-forum-btn-primary" onClick={handleReply} disabled={replyLoading || !replyDraft.trim()}>
                   {replyLoading ? "Отправка…" : "Отправить ответ"}
                 </button>
                 <button className="xp-forum-tbtn xp-forum-tbtn-attach" onClick={() => replyImageRef.current?.click()}>📎 Прикрепить фото</button>
                 <input ref={replyImageRef} type="file" accept="image/*" style={{ display: "none" }} onChange={e => { const f = e.target.files?.[0]; if (f) handleImageSelect(f, setReplyImage, setReplyImagePreview); e.target.value = ""; }} />
+                {selectedPost && [selectedPost.authorName, ...replies.map(r => r.authorName)]
+                  .filter((name, idx, arr) => name !== forumUser?.username && arr.indexOf(name) === idx)
+                  .slice(0, 6)
+                  .map(name => (
+                    <button key={name} className="xp-forum-mention-chip" onClick={() => insertMention(name)}>@{name}</button>
+                  ))}
               </div>
             </div>
           </div>

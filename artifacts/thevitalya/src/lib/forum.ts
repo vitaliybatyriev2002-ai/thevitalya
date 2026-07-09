@@ -48,7 +48,8 @@ export function canManageRoles(role: ForumRole): boolean { return role === "owne
 /* ─── Types ─── */
 export interface ForumUser  { uid: string; username: string; role: ForumRole; banned: boolean; }
 export interface ForumPost  { id: string; authorId: string; authorName: string; authorRole?: ForumRole; title: string; body: string; createdAt: number | null; replyCount: number; pinned?: boolean; imageUrl?: string; reactions?: Record<string, number>; }
-export interface ForumReply { id: string; authorId: string; authorName: string; authorRole?: ForumRole; body: string; createdAt: number | null; imageUrl?: string; reactions?: Record<string, number>; }
+export interface ReplyTarget { id: string; author: string; snippet: string; }
+export interface ForumReply { id: string; authorId: string; authorName: string; authorRole?: ForumRole; body: string; createdAt: number | null; imageUrl?: string; reactions?: Record<string, number>; replyTo?: ReplyTarget; }
 export interface ForumAdminUser { uid: string; username: string; role: ForumRole; banned: boolean; createdAt: number | null; }
 
 export const REACTION_EMOJIS = ["👍", "❤️", "😂"] as const;
@@ -361,6 +362,7 @@ export function subscribeToReplies(
         createdAt:  (x.createdAt as { toMillis?: () => number } | null)?.toMillis?.() ?? null,
         imageUrl:   x.imageUrl ? String(x.imageUrl) : undefined,
         reactions:  (x.reactions as Record<string, number> | undefined) ?? {},
+        replyTo:    x.replyTo as ReplyTarget | undefined,
       };
     });
 
@@ -384,15 +386,38 @@ export function subscribeToReplies(
   });
 }
 
-export async function createReply(user: ForumUser, postId: string, body: string, imageUrl?: string): Promise<void> {
+export async function createReply(user: ForumUser, postId: string, body: string, imageUrl?: string, replyTo?: ReplyTarget): Promise<void> {
   if (user.banned) throw new Error("Ваш аккаунт заблокирован администрацией");
   const data: Record<string, unknown> = {
     authorId: user.uid, authorName: user.username, authorRole: user.role,
     body: body.trim(), createdAt: serverTimestamp(),
   };
   if (imageUrl) data.imageUrl = imageUrl;
+  if (replyTo) data.replyTo = replyTo;
   await addDoc(collection(db, "forum_posts", postId, "replies"), data);
   await updateDoc(doc(db, "forum_posts", postId), { replyCount: increment(1) });
+}
+
+/* ─── Mentions ─── */
+// Requires a non-word character (or start of string) immediately before "@"
+// so email addresses like name@domain.com are never mistaken for a mention.
+const MENTION_RE = /(^|[^\w@])@([a-zA-Z0-9_]{3,20})\b/g;
+
+/** Splits a message body into plain-text and @mention segments for rendering. */
+export function splitMentions(body: string): Array<{ text: string; mention: boolean }> {
+  const parts: Array<{ text: string; mention: boolean }> = [];
+  let lastIndex = 0;
+  for (const m of body.matchAll(MENTION_RE)) {
+    const idx = m.index ?? 0;
+    const boundary = m[1];
+    const mentionStart = idx + boundary.length;
+    if (mentionStart > lastIndex) parts.push({ text: body.slice(lastIndex, mentionStart), mention: false });
+    const mentionText = `@${m[2]}`;
+    parts.push({ text: mentionText, mention: true });
+    lastIndex = mentionStart + mentionText.length;
+  }
+  if (lastIndex < body.length) parts.push({ text: body.slice(lastIndex), mention: false });
+  return parts;
 }
 
 /* ─── Formatters ─── */
