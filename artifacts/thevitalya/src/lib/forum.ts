@@ -274,15 +274,22 @@ export async function togglePinPost(actor: ForumUser, postId: string, currentlyP
 export function subscribeToPostList(
   onChange: (posts: ForumPost[]) => void,
 ): () => void {
+  // Role cache shared across snapshots to avoid redundant getDoc calls
+  const roleCache = new Map<string, ForumRole>();
+  // Call counter: only the latest async execution may call onChange
+  let callId = 0;
+
   const q = query(collection(db, "forum_posts"), orderBy("createdAt", "desc"), limit(50));
   return onSnapshot(q, async (snap) => {
+    const myId = ++callId;
+
     const posts: ForumPost[] = snap.docs.map((d) => {
       const x = d.data() as Record<string, unknown>;
       return {
         id:         d.id,
         authorId:   String(x.authorId   ?? ""),
         authorName: String(x.authorName ?? ""),
-        authorRole: (x.authorRole as ForumRole | undefined),
+        authorRole: (x.authorRole as ForumRole | undefined) ?? roleCache.get(String(x.authorId ?? "")),
         title:      String(x.title      ?? ""),
         body:       String(x.body       ?? ""),
         createdAt:  (x.createdAt as { toMillis?: () => number } | null)?.toMillis?.() ?? null,
@@ -292,17 +299,24 @@ export function subscribeToPostList(
         reactions:  (x.reactions as Record<string, number> | undefined) ?? {},
       };
     });
+
     const missingIds = [...new Set(posts.filter(p => !p.authorRole && p.authorId).map(p => p.authorId))];
     if (missingIds.length > 0) {
-      const roleMap = new Map<string, ForumRole>();
       await Promise.all(missingIds.map(async (uid) => {
         const s = await getDoc(doc(db, "forum_users", uid));
-        if (s.exists()) roleMap.set(uid, (s.data() as { role?: ForumRole }).role ?? "user");
+        if (s.exists()) {
+          const role = (s.data() as { role?: ForumRole }).role ?? "user";
+          roleCache.set(uid, role);
+        }
       }));
-      posts.forEach(p => { if (!p.authorRole) p.authorRole = roleMap.get(p.authorId) ?? "user"; });
+      // Stale check: a newer snapshot arrived while we were fetching roles
+      if (myId !== callId) return;
+      posts.forEach(p => { if (!p.authorRole) p.authorRole = roleCache.get(p.authorId) ?? "user"; });
     } else {
-      posts.forEach(p => { if (!p.authorRole) p.authorRole = "user"; });
+      if (myId !== callId) return;
+      posts.forEach(p => { if (!p.authorRole) p.authorRole = roleCache.get(p.authorId) ?? "user"; });
     }
+
     posts.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
     onChange(posts);
   });
@@ -325,36 +339,47 @@ export function subscribeToReplies(
   postId: string,
   onChange: (replies: ForumReply[]) => void,
 ): () => void {
+  const roleCache = new Map<string, ForumRole>();
+  let callId = 0;
+
   const q = query(
     collection(db, "forum_posts", postId, "replies"),
     orderBy("createdAt", "asc"),
     limit(200),
   );
   return onSnapshot(q, async (snap) => {
+    const myId = ++callId;
+
     const replies: ForumReply[] = snap.docs.map((d) => {
       const x = d.data() as Record<string, unknown>;
       return {
         id:         d.id,
         authorId:   String(x.authorId   ?? ""),
         authorName: String(x.authorName ?? ""),
-        authorRole: (x.authorRole as ForumRole | undefined),
+        authorRole: (x.authorRole as ForumRole | undefined) ?? roleCache.get(String(x.authorId ?? "")),
         body:       String(x.body       ?? ""),
         createdAt:  (x.createdAt as { toMillis?: () => number } | null)?.toMillis?.() ?? null,
         imageUrl:   x.imageUrl ? String(x.imageUrl) : undefined,
         reactions:  (x.reactions as Record<string, number> | undefined) ?? {},
       };
     });
+
     const missingIds = [...new Set(replies.filter(r => !r.authorRole && r.authorId).map(r => r.authorId))];
     if (missingIds.length > 0) {
-      const roleMap = new Map<string, ForumRole>();
       await Promise.all(missingIds.map(async (uid) => {
         const s = await getDoc(doc(db, "forum_users", uid));
-        if (s.exists()) roleMap.set(uid, (s.data() as { role?: ForumRole }).role ?? "user");
+        if (s.exists()) {
+          const role = (s.data() as { role?: ForumRole }).role ?? "user";
+          roleCache.set(uid, role);
+        }
       }));
-      replies.forEach(r => { if (!r.authorRole) r.authorRole = roleMap.get(r.authorId) ?? "user"; });
+      if (myId !== callId) return;
+      replies.forEach(r => { if (!r.authorRole) r.authorRole = roleCache.get(r.authorId) ?? "user"; });
     } else {
-      replies.forEach(r => { if (!r.authorRole) r.authorRole = "user"; });
+      if (myId !== callId) return;
+      replies.forEach(r => { if (!r.authorRole) r.authorRole = roleCache.get(r.authorId) ?? "user"; });
     }
+
     onChange(replies);
   });
 }
