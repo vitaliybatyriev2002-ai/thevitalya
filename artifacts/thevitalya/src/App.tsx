@@ -1080,6 +1080,8 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
   const [adminBusyUid, setAdminBusyUid]   = useState<string | null>(null);
   const [adminErr, setAdminErr]           = useState<string | null>(null);
   const repliesEndRef  = useRef<HTMLDivElement>(null);
+  const repliesBodyRef = useRef<HTMLDivElement>(null);
+  const [repliesLoadedFor, setRepliesLoadedFor] = useState<string | null>(null);
   const newImageRef    = useRef<HTMLInputElement>(null);
   const replyImageRef  = useRef<HTMLInputElement>(null);
 
@@ -1111,10 +1113,41 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
 
   useEffect(() => {
     if (view !== "post" || !selectedPost) return;
-    return subscribeToReplies(selectedPost.id, setReplies);
+    setRepliesLoadedFor(null);
+    return subscribeToReplies(selectedPost.id, (list) => {
+      setReplies(list);
+      setRepliesLoadedFor(selectedPost.id);
+    });
   }, [view, selectedPost?.id]);
 
-  useEffect(() => { repliesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [replies]);
+  // Jump straight to the most recent reply the moment a topic (and its
+  // first batch of replies) has loaded — instantly, not a smooth scroll,
+  // so long threads never get stuck showing the top.
+  useEffect(() => {
+    if (!selectedPost || repliesLoadedFor !== selectedPost.id) return;
+    repliesEndRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+  }, [repliesLoadedFor, selectedPost?.id]);
+
+  // Keep following new replies once the thread is already open.
+  useEffect(() => {
+    if (!repliesLoadedFor) return;
+    repliesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [replies, repliesLoadedFor]);
+
+  const scrollReplies = (dir: "up" | "down") => {
+    const el = repliesBodyRef.current;
+    if (!el) return;
+    const amount = Math.max(200, el.clientHeight * 0.8);
+    el.scrollBy({ top: dir === "up" ? -amount : amount, behavior: "smooth" });
+  };
+
+  const scrollToNewestReply = () => {
+    repliesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  };
+
+  const scrollToOldestReply = () => {
+    repliesBodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const handleImageSelect = (file: File, setter: (f: File | null) => void, previewSetter: (s: string | null) => void) => {
     if (file.size > 15 * 1024 * 1024) { alert("Файл слишком большой. Максимум 15 МБ (изображение будет сжато автоматически)."); return; }
@@ -1397,7 +1430,7 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
               <span className="xp-forum-detail-title">{selectedPost.title}</span>
             </div>
 
-            <div className="xp-forum-replies">
+            <div className="xp-forum-replies" ref={repliesBodyRef}>
               <div className="xp-forum-msg xp-forum-msg-op">
                 <div className="xp-forum-msg-sidebar">
                   <div className="xp-forum-avatar">{selectedPost.authorName[0]?.toUpperCase()}</div>
@@ -1471,6 +1504,13 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                 </div>
               ))}
               <div ref={repliesEndRef} />
+            </div>
+
+            <div className="xp-forum-scrollnav">
+              <button type="button" className="xp-forum-scrollnav-btn" title="К первому сообщению" onClick={scrollToOldestReply}>⇈</button>
+              <button type="button" className="xp-forum-scrollnav-btn" title="Прокрутить вверх" onClick={() => scrollReplies("up")}>▲</button>
+              <button type="button" className="xp-forum-scrollnav-btn" title="Прокрутить вниз" onClick={() => scrollReplies("down")}>▼</button>
+              <button type="button" className="xp-forum-scrollnav-btn" title="К последнему ответу" onClick={scrollToNewestReply}>⇊</button>
             </div>
 
             <div className="xp-forum-reply-form">

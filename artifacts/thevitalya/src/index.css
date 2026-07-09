@@ -1470,6 +1470,31 @@ body, #root {
 }
 .xp-forum-img-remove:hover { background: #ee2222; }
 
+/* ── SCROLL NAV (jump to first/last reply, page up/down) ── */
+.xp-forum-scrollnav {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: linear-gradient(180deg, #e8edf8 0%, #d8e0f0 100%);
+  border-top: 1px solid #b8c4e8;
+  flex-shrink: 0;
+}
+.xp-forum-scrollnav-btn {
+  width: 30px;
+  height: 22px;
+  font-size: 12px;
+  line-height: 1;
+  font-family: Tahoma, sans-serif;
+  background: linear-gradient(180deg, #f5f4ee 0%, #dedad0 100%);
+  border: 1px solid #aaa;
+  border-radius: 2px;
+  cursor: pointer;
+  color: #002288;
+}
+.xp-forum-scrollnav-btn:hover { background: linear-gradient(180deg, #eef0fa 0%, #cdd0e8 100%); border-color: #7a90d4; }
+.xp-forum-scrollnav-btn:active { transform: translateY(1px); }
+
 /* ── REPLY FORM ── */
 .xp-forum-reply-form {
   padding: 10px 12px;
