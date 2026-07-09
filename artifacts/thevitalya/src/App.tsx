@@ -1421,15 +1421,15 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                   <div className="xp-forum-avatar">{selectedPost.authorName[0]?.toUpperCase()}</div>
                   <div className="xp-forum-msg-username">{selectedPost.authorName}</div>
                   <div className="xp-forum-msg-rank">Участник</div>
-                </div>
-                <div className="xp-forum-msg-content">
-                  <div className="xp-forum-msg-head">
+                  <div className="xp-forum-msg-sidebar-right">
                     <span className="xp-forum-msg-num">#1</span>
                     <span className="xp-forum-reply-date">{formatDate(selectedPost.createdAt)}</span>
                     {isModerator && (
                       <button className="xp-forum-mod-delete" title="Удалить тему" onClick={() => handleDeletePost(selectedPost)}>🗑</button>
                     )}
                   </div>
+                </div>
+                <div className="xp-forum-msg-content">
                   <div className="xp-forum-op-body">{selectedPost.body}</div>
                   {selectedPost.imageUrl && (
                     <div className="xp-forum-msg-img">
@@ -1458,15 +1458,15 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                     <div className="xp-forum-avatar">{r.authorName[0]?.toUpperCase()}</div>
                     <div className="xp-forum-msg-username">{r.authorName}</div>
                     <div className="xp-forum-msg-rank">Участник</div>
-                  </div>
-                  <div className="xp-forum-msg-content">
-                    <div className="xp-forum-msg-head">
+                    <div className="xp-forum-msg-sidebar-right">
                       <span className="xp-forum-msg-num">#{i + 2}</span>
                       <span className="xp-forum-reply-date">{formatDate(r.createdAt)}</span>
                       {isModerator && (
                         <button className="xp-forum-mod-delete" title="Удалить сообщение" onClick={() => handleDeleteReply(r)}>🗑</button>
                       )}
                     </div>
+                  </div>
+                  <div className="xp-forum-msg-content">
                     <div className="xp-forum-reply-body">{r.body}</div>
                     {r.imageUrl && (
                       <div className="xp-forum-msg-img">

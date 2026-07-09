@@ -9,6 +9,7 @@ body, #root {
   overflow: hidden;
   font-family: Tahoma, 'MS Sans Serif', Arial, sans-serif;
   font-size: 11px;
+  color-scheme: light;
 }
 
 /* ══════════════════════════════════════
@@ -875,8 +876,8 @@ body, #root {
 /* ── Forum Window ── */
 /* ══ FORUM WINDOW ══ */
 .xp-forum {
-  width: min(780px, 96vw);
-  min-width: 500px;
+  width: min(720px, 96vw);
+  min-width: 320px;
 }
 
 .xp-forum-toolbar {
@@ -884,7 +885,7 @@ body, #root {
   align-items: center;
   gap: 4px;
   padding: 3px 6px;
-  background: linear-gradient(180deg, #f5f4ee 0%, #dedad0 100%);
+  background: #ece9d8;
   border-bottom: 1px solid #aaa;
   font-family: Tahoma, sans-serif;
   font-size: 11px;
@@ -1348,6 +1349,7 @@ body, #root {
 /* ── MESSAGES (forum post style) ── */
 .xp-forum-msg {
   display: flex;
+  flex-direction: column;
   border: 1px solid #c0c8e0;
   background: #fff;
   font-family: Tahoma, sans-serif;
@@ -1357,30 +1359,35 @@ body, #root {
 
 .xp-forum-msg-op { border-color: #7a90d4; background: #f4f7ff; }
 
+/* Sidebar now acts as compact inline header row */
 .xp-forum-msg-sidebar {
-  width: 90px;
-  flex-shrink: 0;
-  background: linear-gradient(180deg, #e8edf8 0%, #d8e0f0 100%);
-  border-right: 1px solid #c0c8e0;
-  padding: 8px 6px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #ece9d8;
+  border-bottom: 1px solid #c8c5b8;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.xp-forum-msg-op .xp-forum-msg-sidebar {
+  background: linear-gradient(180deg, #dce6f8 0%, #ccd8f0 100%);
+  border-bottom-color: #a8b8e0;
 }
 
 .xp-forum-msg-username {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: bold;
   color: #003399;
-  text-align: center;
-  word-break: break-all;
+  text-align: left;
 }
 
 .xp-forum-msg-rank {
-  font-size: 9px;
-  color: #666;
-  text-align: center;
+  font-size: 10px;
+  color: #888;
+  text-align: left;
   font-style: italic;
 }
 
@@ -1391,34 +1398,40 @@ body, #root {
   min-width: 0;
 }
 
+/* msg-head is now hidden — info moved to sidebar row */
 .xp-forum-msg-head {
+  display: none;
+}
+
+/* Show num + date inside sidebar inline */
+.xp-forum-msg-sidebar-right {
+  margin-left: auto;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 4px 10px;
-  background: linear-gradient(180deg, #ece9d8 0%, #dedad0 100%);
-  border-bottom: 1px solid #ccc;
+  gap: 8px;
 }
 
 .xp-forum-msg-num {
   font-size: 10px;
   font-weight: bold;
-  color: #555;
+  color: #777;
 }
 
 .xp-forum-reply-date {
   font-size: 10px;
-  color: #888;
+  color: #999;
 }
 
 .xp-forum-op-body,
 .xp-forum-reply-body {
-  padding: 10px;
+  padding: 8px 10px;
   font-size: 12px;
   color: #111;
   white-space: pre-wrap;
   word-break: break-word;
+  overflow-wrap: break-word;
   line-height: 1.5;
+  min-width: 0;
 }
 
 /* ── IMAGE ATTACHMENTS ── */
@@ -1644,25 +1657,27 @@ body, #root {
   }
   .xp-forum-replies { padding: 6px; }
 
-  /* ── Messages: stack sidebar above body ── */
-  .xp-forum-msg { flex-direction: column; }
+  /* ── Forum body: let inner elements scroll ── */
+  .xp-forum-body {
+    overflow-y: hidden;
+  }
 
-  .xp-forum-msg-sidebar {
-    width: 100%;
-    flex-direction: row;
-    border-right: none;
-    border-bottom: 1px solid #c0c8e0;
-    padding: 5px 8px;
-    gap: 8px;
-    align-items: center;
+  /* Ensure detail view properly fills height */
+  .xp-forum-detail {
+    min-height: 0;
+    flex: 1;
+    overflow: hidden;
   }
-  .xp-forum-msg-username {
-    font-size: 11px;
-    text-align: left;
-  }
-  .xp-forum-msg-rank {
-    font-size: 10px;
-    text-align: left;
+
+  /* Messages already column-based, just ensure no overflow issues */
+  .xp-forum-msg { overflow: visible; }
+  .xp-forum-msg-content { overflow: visible; }
+
+  .xp-forum-op-body,
+  .xp-forum-reply-body {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    max-width: 100%;
   }
 
   /* ── Reply form ── */
