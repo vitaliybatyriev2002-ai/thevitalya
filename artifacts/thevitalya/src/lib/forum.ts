@@ -270,24 +270,34 @@ export function subscribeToPostList(
   onChange: (posts: ForumPost[]) => void,
 ): () => void {
   const q = query(collection(db, "forum_posts"), orderBy("createdAt", "desc"), limit(50));
-  return onSnapshot(q, (snap) => {
-    onChange(
-      snap.docs.map((d) => {
-        const x = d.data() as Record<string, unknown>;
-        return {
-          id:         d.id,
-          authorId:   String(x.authorId   ?? ""),
-          authorName: String(x.authorName ?? ""),
-          authorRole: (x.authorRole as ForumRole | undefined) ?? "user",
-          title:      String(x.title      ?? ""),
-          body:       String(x.body       ?? ""),
-          createdAt:  (x.createdAt as { toMillis?: () => number } | null)?.toMillis?.() ?? null,
-          replyCount: Number(x.replyCount ?? 0),
-          imageUrl:   x.imageUrl ? String(x.imageUrl) : undefined,
-          reactions:  (x.reactions as Record<string, number> | undefined) ?? {},
-        };
-      }),
-    );
+  return onSnapshot(q, async (snap) => {
+    const posts: ForumPost[] = snap.docs.map((d) => {
+      const x = d.data() as Record<string, unknown>;
+      return {
+        id:         d.id,
+        authorId:   String(x.authorId   ?? ""),
+        authorName: String(x.authorName ?? ""),
+        authorRole: (x.authorRole as ForumRole | undefined),
+        title:      String(x.title      ?? ""),
+        body:       String(x.body       ?? ""),
+        createdAt:  (x.createdAt as { toMillis?: () => number } | null)?.toMillis?.() ?? null,
+        replyCount: Number(x.replyCount ?? 0),
+        imageUrl:   x.imageUrl ? String(x.imageUrl) : undefined,
+        reactions:  (x.reactions as Record<string, number> | undefined) ?? {},
+      };
+    });
+    const missingIds = [...new Set(posts.filter(p => !p.authorRole && p.authorId).map(p => p.authorId))];
+    if (missingIds.length > 0) {
+      const roleMap = new Map<string, ForumRole>();
+      await Promise.all(missingIds.map(async (uid) => {
+        const s = await getDoc(doc(db, "forum_users", uid));
+        if (s.exists()) roleMap.set(uid, (s.data() as { role?: ForumRole }).role ?? "user");
+      }));
+      posts.forEach(p => { if (!p.authorRole) p.authorRole = roleMap.get(p.authorId) ?? "user"; });
+    } else {
+      posts.forEach(p => { if (!p.authorRole) p.authorRole = "user"; });
+    }
+    onChange(posts);
   });
 }
 
@@ -313,22 +323,32 @@ export function subscribeToReplies(
     orderBy("createdAt", "asc"),
     limit(200),
   );
-  return onSnapshot(q, (snap) => {
-    onChange(
-      snap.docs.map((d) => {
-        const x = d.data() as Record<string, unknown>;
-        return {
-          id:         d.id,
-          authorId:   String(x.authorId   ?? ""),
-          authorName: String(x.authorName ?? ""),
-          authorRole: (x.authorRole as ForumRole | undefined) ?? "user",
-          body:       String(x.body       ?? ""),
-          createdAt:  (x.createdAt as { toMillis?: () => number } | null)?.toMillis?.() ?? null,
-          imageUrl:   x.imageUrl ? String(x.imageUrl) : undefined,
-          reactions:  (x.reactions as Record<string, number> | undefined) ?? {},
-        };
-      }),
-    );
+  return onSnapshot(q, async (snap) => {
+    const replies: ForumReply[] = snap.docs.map((d) => {
+      const x = d.data() as Record<string, unknown>;
+      return {
+        id:         d.id,
+        authorId:   String(x.authorId   ?? ""),
+        authorName: String(x.authorName ?? ""),
+        authorRole: (x.authorRole as ForumRole | undefined),
+        body:       String(x.body       ?? ""),
+        createdAt:  (x.createdAt as { toMillis?: () => number } | null)?.toMillis?.() ?? null,
+        imageUrl:   x.imageUrl ? String(x.imageUrl) : undefined,
+        reactions:  (x.reactions as Record<string, number> | undefined) ?? {},
+      };
+    });
+    const missingIds = [...new Set(replies.filter(r => !r.authorRole && r.authorId).map(r => r.authorId))];
+    if (missingIds.length > 0) {
+      const roleMap = new Map<string, ForumRole>();
+      await Promise.all(missingIds.map(async (uid) => {
+        const s = await getDoc(doc(db, "forum_users", uid));
+        if (s.exists()) roleMap.set(uid, (s.data() as { role?: ForumRole }).role ?? "user");
+      }));
+      replies.forEach(r => { if (!r.authorRole) r.authorRole = roleMap.get(r.authorId) ?? "user"; });
+    } else {
+      replies.forEach(r => { if (!r.authorRole) r.authorRole = "user"; });
+    }
+    onChange(replies);
   });
 }
 
