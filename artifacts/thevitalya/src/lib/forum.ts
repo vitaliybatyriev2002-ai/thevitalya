@@ -47,7 +47,7 @@ export function canManageRoles(role: ForumRole): boolean { return role === "owne
 
 /* ─── Types ─── */
 export interface ForumUser  { uid: string; username: string; role: ForumRole; banned: boolean; }
-export interface ForumPost  { id: string; authorId: string; authorName: string; authorRole?: ForumRole; title: string; body: string; createdAt: number | null; replyCount: number; imageUrl?: string; reactions?: Record<string, number>; }
+export interface ForumPost  { id: string; authorId: string; authorName: string; authorRole?: ForumRole; title: string; body: string; createdAt: number | null; replyCount: number; pinned?: boolean; imageUrl?: string; reactions?: Record<string, number>; }
 export interface ForumReply { id: string; authorId: string; authorName: string; authorRole?: ForumRole; body: string; createdAt: number | null; imageUrl?: string; reactions?: Record<string, number>; }
 export interface ForumAdminUser { uid: string; username: string; role: ForumRole; banned: boolean; createdAt: number | null; }
 
@@ -265,6 +265,11 @@ export async function deleteReply(actor: ForumUser, postId: string, replyId: str
   await updateDoc(doc(db, "forum_posts", postId), { replyCount: increment(-1) });
 }
 
+export async function togglePinPost(actor: ForumUser, postId: string, currentlyPinned: boolean): Promise<void> {
+  if (!canModerate(actor.role)) throw new Error("Недостаточно прав");
+  await updateDoc(doc(db, "forum_posts", postId), { pinned: !currentlyPinned });
+}
+
 /* ─── Posts ─── */
 export function subscribeToPostList(
   onChange: (posts: ForumPost[]) => void,
@@ -282,6 +287,7 @@ export function subscribeToPostList(
         body:       String(x.body       ?? ""),
         createdAt:  (x.createdAt as { toMillis?: () => number } | null)?.toMillis?.() ?? null,
         replyCount: Number(x.replyCount ?? 0),
+        pinned:     Boolean(x.pinned ?? false),
         imageUrl:   x.imageUrl ? String(x.imageUrl) : undefined,
         reactions:  (x.reactions as Record<string, number> | undefined) ?? {},
       };
@@ -297,6 +303,7 @@ export function subscribeToPostList(
     } else {
       posts.forEach(p => { if (!p.authorRole) p.authorRole = "user"; });
     }
+    posts.sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
     onChange(posts);
   });
 }

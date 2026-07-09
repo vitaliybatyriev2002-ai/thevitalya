@@ -31,6 +31,7 @@ import {
   canManageRoles,
   deletePost,
   deleteReply,
+  togglePinPost,
   subscribeToAllUsers,
   setUserRole,
   setUserBanned,
@@ -1337,9 +1338,9 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
 
             <div className="xp-forum-list">
               {posts.map((post, i) => (
-                <div key={post.id} className={`xp-forum-post-row${i % 2 === 1 ? " xp-forum-post-row-alt" : ""}`} onClick={() => openPost(post)}>
+                <div key={post.id} className={`xp-forum-post-row${post.pinned ? " xp-forum-post-row-pinned" : (i % 2 === 1 ? " xp-forum-post-row-alt" : "")}`} onClick={() => openPost(post)}>
                   <div className="xp-forum-td xp-forum-td-topic">
-                    <span className="xp-forum-post-icon">{post.imageUrl ? "🖼️" : "📄"}</span>
+                    <span className="xp-forum-post-icon">{post.pinned ? "📌" : post.imageUrl ? "🖼️" : "📄"}</span>
                     <div className="xp-forum-post-info">
                       <span className="xp-forum-post-title">{post.title}</span>
                       <span className="xp-forum-post-preview">{post.body.slice(0, 70)}{post.body.length > 70 ? "…" : ""}</span>
@@ -1351,6 +1352,11 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                   </div>
                   <div className="xp-forum-td xp-forum-td-replies">{post.replyCount}</div>
                   <div className="xp-forum-td xp-forum-td-date">{formatDate(post.createdAt)}</div>
+                  {isModerator && (
+                    <button className="xp-forum-mod-pin" title={post.pinned ? "Открепить" : "Закрепить"} onClick={(e) => { e.stopPropagation(); togglePinPost(forumUser!, post.id, !!post.pinned); }}>
+                      {post.pinned ? "📌" : "📍"}
+                    </button>
+                  )}
                   {isModerator && (
                     <button className="xp-forum-mod-delete" title="Удалить тему" onClick={(e) => handleDeletePost(post, e)}>🗑</button>
                   )}

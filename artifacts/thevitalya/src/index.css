@@ -1177,6 +1177,10 @@ body, #root {
   background: #fff;
 }
 .xp-forum-post-row-alt { background: #f5f4ef; }
+.xp-forum-post-row-pinned {
+  background: #fffbe6;
+  border-left: 3px solid #e6a800;
+}
 .xp-forum-post-row:hover { background: #deeaff !important; }
 
 .xp-forum-td {
@@ -1205,6 +1209,18 @@ body, #root {
 }
 .xp-forum-role-owner { background: linear-gradient(180deg, #fff6d8 0%, #f0d878 100%); color: #6b4e00; border: 1px solid #c9a634; }
 .xp-forum-role-admin { background: linear-gradient(180deg, #e0eaff 0%, #b6c8f0 100%); color: #1c3a8a; border: 1px solid #7a90d4; }
+
+.xp-forum-mod-pin {
+  flex-shrink: 0;
+  padding: 1px 4px;
+  font-size: 12px;
+  background: #f0f4e8;
+  border: 1px solid #b0c888;
+  border-radius: 2px;
+  cursor: pointer;
+  line-height: 1;
+}
+.xp-forum-mod-pin:hover { background: #dff0b8; border-color: #88b040; }
 
 .xp-forum-mod-delete {
   background: none;
