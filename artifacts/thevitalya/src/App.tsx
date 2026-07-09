@@ -1134,21 +1134,6 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
     repliesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [replies, repliesLoadedFor]);
 
-  const scrollReplies = (dir: "up" | "down") => {
-    const el = repliesBodyRef.current;
-    if (!el) return;
-    const amount = Math.max(200, el.clientHeight * 0.8);
-    el.scrollBy({ top: dir === "up" ? -amount : amount, behavior: "smooth" });
-  };
-
-  const scrollToNewestReply = () => {
-    repliesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  };
-
-  const scrollToOldestReply = () => {
-    repliesBodyRef.current?.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
   const handleImageSelect = (file: File, setter: (f: File | null) => void, previewSetter: (s: string | null) => void) => {
     if (file.size > 15 * 1024 * 1024) { alert("Файл слишком большой. Максимум 15 МБ (изображение будет сжато автоматически)."); return; }
     setter(file);
@@ -1504,13 +1489,6 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                 </div>
               ))}
               <div ref={repliesEndRef} />
-            </div>
-
-            <div className="xp-forum-scrollnav">
-              <button type="button" className="xp-forum-scrollnav-btn" title="К первому сообщению" onClick={scrollToOldestReply}>⇈</button>
-              <button type="button" className="xp-forum-scrollnav-btn" title="Прокрутить вверх" onClick={() => scrollReplies("up")}>▲</button>
-              <button type="button" className="xp-forum-scrollnav-btn" title="Прокрутить вниз" onClick={() => scrollReplies("down")}>▼</button>
-              <button type="button" className="xp-forum-scrollnav-btn" title="К последнему ответу" onClick={scrollToNewestReply}>⇊</button>
             </div>
 
             <div className="xp-forum-reply-form">
