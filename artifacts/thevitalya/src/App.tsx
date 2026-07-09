@@ -1493,7 +1493,7 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
 
             <div className="xp-forum-reply-form">
               <div className="xp-forum-reply-form-label">✏️ Ответить в теме</div>
-              <textarea className="xp-forum-textarea" placeholder="Написать ответ…" value={replyDraft} onChange={e => setReplyDraft(e.target.value)} rows={3} />
+              <textarea className="xp-forum-textarea" placeholder="Написать ответ…" value={replyDraft} onChange={e => setReplyDraft(e.target.value)} rows={2} />
               {replyImagePreview && (
                 <div className="xp-forum-img-preview">
                   <img src={replyImagePreview} alt="preview" onClick={() => setLightboxUrl(replyImagePreview)} />

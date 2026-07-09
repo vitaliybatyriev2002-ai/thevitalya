@@ -1101,12 +1101,12 @@ body, #root {
 
 .xp-forum-textarea {
   width: 100%;
-  padding: 5px 7px;
+  padding: 3px 5px;
   font-family: Tahoma, sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   border: 1px solid #7a90d4;
   border-radius: 2px;
-  resize: vertical;
+  resize: none;
   box-sizing: border-box;
   background: #fff;
 }
@@ -1485,18 +1485,18 @@ body, #root {
 
 /* ── REPLY FORM ── */
 .xp-forum-reply-form {
-  padding: 10px 12px;
-  border-top: 2px solid #7a90d4;
-  background: linear-gradient(180deg, #f0f4ff 0%, #e8edf8 100%);
+  padding: 4px 7px;
+  border-top: 1px solid #7a90d4;
+  background: #eef1f8;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
 .xp-forum-reply-form-label {
   font-family: Tahoma, sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: bold;
   color: #002288;
 }
