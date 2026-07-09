@@ -1148,6 +1148,8 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
       if (newImage) imageUrl = await uploadImage(newImage, `forum_posts/${Date.now()}_${newImage.name}`);
       await createPost(forumUser, newTitle, newBody, imageUrl);
       setNewTitle(""); setNewBody(""); setNewImage(null); setNewImagePreview(null); setShowNewPost(false);
+    } catch (err) {
+      alert(`Не удалось создать тему: ${(err as Error).message ?? "неизвестная ошибка"}`);
     } finally { setPosting(false); }
   };
 
@@ -1159,6 +1161,8 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
       if (replyImage) imageUrl = await uploadImage(replyImage, `forum_replies/${Date.now()}_${replyImage.name}`);
       await createReply(forumUser, selectedPost.id, replyDraft, imageUrl);
       setReplyDraft(""); setReplyImage(null); setReplyImagePreview(null);
+    } catch (err) {
+      alert(`Не удалось отправить ответ: ${(err as Error).message ?? "неизвестная ошибка"}`);
     } finally { setReplyLoading(false); }
   };
 
@@ -1601,8 +1605,6 @@ export default function App() {
   useEffect(() => {
     if (phase !== "desktop") return;
     playXPStartup();
-    const t = setTimeout(() => openWin("main", setWinOpen), 800);
-    return () => clearTimeout(t);
   }, [phase]);
 
   if (phase === "boot") return <BootScreen onDone={() => setPhase("logon")} />;
