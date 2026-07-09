@@ -1845,20 +1845,6 @@ body, #root {
   max-height: calc(100svh - 36px);
 }
 
-/* The forum window's body scrolls internally and its reply form is a
-   flex-shrink:0 footer, so make the window a column flex container on
-   desktop too (mirrors the existing mobile layout) — this lets the body
-   shrink to fit instead of pushing the reply form past max-height, where
-   overflow:hidden would otherwise clip its buttons. */
-.xp-window.xp-forum {
-  display: flex;
-  flex-direction: column;
-}
-.xp-window.xp-forum .xp-forum-body {
-  height: auto;
-  flex: 1;
-  min-height: 0;
-}
 @keyframes xp-open {
   from { opacity: 0; transform: scale(.93); transform-origin: top center; }
   to   { opacity: 1; transform: scale(1); }
