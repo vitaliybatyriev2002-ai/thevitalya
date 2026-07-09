@@ -1110,7 +1110,7 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
   useEffect(() => { repliesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [replies]);
 
   const handleImageSelect = (file: File, setter: (f: File | null) => void, previewSetter: (s: string | null) => void) => {
-    if (file.size > 5 * 1024 * 1024) { alert("Файл слишком большой. Максимум 5 МБ."); return; }
+    if (file.size > 15 * 1024 * 1024) { alert("Файл слишком большой. Максимум 15 МБ."); return; }
     setter(file);
     const reader = new FileReader();
     reader.onload = (e) => previewSetter(e.target?.result as string);
@@ -1145,7 +1145,7 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
     setPosting(true);
     try {
       let imageUrl: string | undefined;
-      if (newImage) imageUrl = await uploadImage(newImage, `forum_posts/${Date.now()}_${newImage.name}`);
+      if (newImage) imageUrl = await uploadImage(newImage);
       await createPost(forumUser, newTitle, newBody, imageUrl);
       setNewTitle(""); setNewBody(""); setNewImage(null); setNewImagePreview(null); setShowNewPost(false);
     } catch (err) {
@@ -1158,7 +1158,7 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
     setReplyLoading(true);
     try {
       let imageUrl: string | undefined;
-      if (replyImage) imageUrl = await uploadImage(replyImage, `forum_replies/${Date.now()}_${replyImage.name}`);
+      if (replyImage) imageUrl = await uploadImage(replyImage);
       await createReply(forumUser, selectedPost.id, replyDraft, imageUrl);
       setReplyDraft(""); setReplyImage(null); setReplyImagePreview(null);
     } catch (err) {

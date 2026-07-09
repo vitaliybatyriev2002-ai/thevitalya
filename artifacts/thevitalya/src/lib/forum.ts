@@ -21,8 +21,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { auth, db, storage } from "./firebase";
+import { auth, db } from "./firebase";
 
 /* ─── Roles / Admin ─── */
 export type ForumRole = "owner" | "admin" | "user";
@@ -105,11 +104,55 @@ export function subscribeToUserReactions(
 export function postDocRef(postId: string) { return doc(db, "forum_posts", postId); }
 export function replyDocRef(postId: string, replyId: string) { return doc(db, "forum_posts", postId, "replies", replyId); }
 
-/* ─── Image Upload ─── */
-export async function uploadImage(file: File, path: string): Promise<string> {
-  const storageRef = ref(storage, path);
-  await uploadBytes(storageRef, file);
-  return getDownloadURL(storageRef);
+/* ─── Image Upload (Firebase Storage requires the paid Blaze plan, which
+ * this project doesn't have, so attachments are compressed client-side and
+ * stored inline as a base64 data URL directly on the post/reply document.
+ * Firestore caps a document at ~1 MiB, and base64 inflates size by ~33%,
+ * so images are downscaled/re-compressed until comfortably under that. ─── */
+const MAX_IMAGE_DATA_URL_BYTES = 700_000; // leaves headroom under Firestore's 1 MiB doc cap
+const MAX_IMAGE_DIMENSION = 1280;
+
+export async function uploadImage(file: File): Promise<string> {
+  const rawDataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Не удалось прочитать файл"));
+    reader.readAsDataURL(file);
+  });
+
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Не удалось прочитать изображение"));
+    image.src = rawDataUrl;
+  });
+
+  let { width, height } = img;
+  if (width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+    const scale = MAX_IMAGE_DIMENSION / Math.max(width, height);
+    width = Math.round(width * scale);
+    height = Math.round(height * scale);
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Браузер не поддерживает обработку изображений");
+  ctx.drawImage(img, 0, 0, width, height);
+
+  let quality = 0.85;
+  let out = canvas.toDataURL("image/jpeg", quality);
+  while (out.length > MAX_IMAGE_DATA_URL_BYTES && quality > 0.3) {
+    quality -= 0.1;
+    out = canvas.toDataURL("image/jpeg", quality);
+  }
+
+  if (out.length > MAX_IMAGE_DATA_URL_BYTES * 1.2) {
+    throw new Error("Изображение слишком большое даже после сжатия. Попробуйте файл меньшего разрешения.");
+  }
+
+  return out;
 }
 
 /* ─── Auth ─── */

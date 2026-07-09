@@ -1,7 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { getStorage } from "firebase/storage";
 
 const requiredEnvVars = [
   "VITE_FIREBASE_API_KEY",
@@ -35,4 +34,3 @@ export const firebaseApp = getApps().length
 
 export const db      = getFirestore(firebaseApp);
 export const auth    = getAuth(firebaseApp);
-export const storage = getStorage(firebaseApp);
