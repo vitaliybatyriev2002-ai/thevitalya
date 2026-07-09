@@ -1420,7 +1420,7 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                 <div className="xp-forum-msg-sidebar">
                   <div className="xp-forum-avatar">{selectedPost.authorName[0]?.toUpperCase()}</div>
                   <div className="xp-forum-msg-username">{selectedPost.authorName}</div>
-                  <div className="xp-forum-msg-rank">Участник</div>
+                  <div className="xp-forum-msg-rank">{selectedPost.authorRole === 'owner' ? 'Владелец' : selectedPost.authorRole === 'admin' ? 'Админ' : 'Участник'}</div>
                   <div className="xp-forum-msg-sidebar-right">
                     <span className="xp-forum-msg-num">#1</span>
                     <span className="xp-forum-reply-date">{formatDate(selectedPost.createdAt)}</span>
@@ -1457,7 +1457,7 @@ function ForumWindow({ onClose, zIndex, onFocus }: { onClose: () => void; zIndex
                   <div className="xp-forum-msg-sidebar">
                     <div className="xp-forum-avatar">{r.authorName[0]?.toUpperCase()}</div>
                     <div className="xp-forum-msg-username">{r.authorName}</div>
-                    <div className="xp-forum-msg-rank">Участник</div>
+                    <div className="xp-forum-msg-rank">{r.authorRole === 'owner' ? 'Владелец' : r.authorRole === 'admin' ? 'Админ' : 'Участник'}</div>
                     <div className="xp-forum-msg-sidebar-right">
                       <span className="xp-forum-msg-num">#{i + 2}</span>
                       <span className="xp-forum-reply-date">{formatDate(r.createdAt)}</span>

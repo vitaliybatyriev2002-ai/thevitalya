@@ -47,8 +47,8 @@ export function canManageRoles(role: ForumRole): boolean { return role === "owne
 
 /* ─── Types ─── */
 export interface ForumUser  { uid: string; username: string; role: ForumRole; banned: boolean; }
-export interface ForumPost  { id: string; authorId: string; authorName: string; title: string; body: string; createdAt: number | null; replyCount: number; imageUrl?: string; reactions?: Record<string, number>; }
-export interface ForumReply { id: string; authorId: string; authorName: string; body: string; createdAt: number | null; imageUrl?: string; reactions?: Record<string, number>; }
+export interface ForumPost  { id: string; authorId: string; authorName: string; authorRole?: ForumRole; title: string; body: string; createdAt: number | null; replyCount: number; imageUrl?: string; reactions?: Record<string, number>; }
+export interface ForumReply { id: string; authorId: string; authorName: string; authorRole?: ForumRole; body: string; createdAt: number | null; imageUrl?: string; reactions?: Record<string, number>; }
 export interface ForumAdminUser { uid: string; username: string; role: ForumRole; banned: boolean; createdAt: number | null; }
 
 export const REACTION_EMOJIS = ["👍", "❤️", "😂"] as const;
@@ -278,6 +278,7 @@ export function subscribeToPostList(
           id:         d.id,
           authorId:   String(x.authorId   ?? ""),
           authorName: String(x.authorName ?? ""),
+          authorRole: (x.authorRole as ForumRole | undefined) ?? "user",
           title:      String(x.title      ?? ""),
           body:       String(x.body       ?? ""),
           createdAt:  (x.createdAt as { toMillis?: () => number } | null)?.toMillis?.() ?? null,
@@ -293,7 +294,7 @@ export function subscribeToPostList(
 export async function createPost(user: ForumUser, title: string, body: string, imageUrl?: string): Promise<string> {
   if (user.banned) throw new Error("Ваш аккаунт заблокирован администрацией");
   const data: Record<string, unknown> = {
-    authorId: user.uid, authorName: user.username,
+    authorId: user.uid, authorName: user.username, authorRole: user.role,
     title: title.trim(), body: body.trim(),
     createdAt: serverTimestamp(), replyCount: 0,
   };
@@ -320,6 +321,7 @@ export function subscribeToReplies(
           id:         d.id,
           authorId:   String(x.authorId   ?? ""),
           authorName: String(x.authorName ?? ""),
+          authorRole: (x.authorRole as ForumRole | undefined) ?? "user",
           body:       String(x.body       ?? ""),
           createdAt:  (x.createdAt as { toMillis?: () => number } | null)?.toMillis?.() ?? null,
           imageUrl:   x.imageUrl ? String(x.imageUrl) : undefined,
@@ -333,7 +335,7 @@ export function subscribeToReplies(
 export async function createReply(user: ForumUser, postId: string, body: string, imageUrl?: string): Promise<void> {
   if (user.banned) throw new Error("Ваш аккаунт заблокирован администрацией");
   const data: Record<string, unknown> = {
-    authorId: user.uid, authorName: user.username,
+    authorId: user.uid, authorName: user.username, authorRole: user.role,
     body: body.trim(), createdAt: serverTimestamp(),
   };
   if (imageUrl) data.imageUrl = imageUrl;
