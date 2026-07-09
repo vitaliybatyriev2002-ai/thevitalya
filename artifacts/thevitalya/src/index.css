@@ -1589,12 +1589,19 @@ body, #root {
     left: 0 !important;
     top: 0 !important;
     border-radius: 0 !important;
+    display: flex;
+    flex-direction: column;
+    max-height: 100vh;
+    max-height: 100svh;
   }
 
-  /* Body: fill available screen height */
+  /* Body: fill whatever space is left after the title bar/toolbar/etc,
+     never more — this is what keeps the reply form's buttons from being
+     clipped off the bottom of the screen by the desktop's overflow:hidden. */
   .xp-forum-body {
-    height: calc(100vh - 100px);
-    height: calc(100svh - 100px);
+    height: auto;
+    flex: 1;
+    min-height: 0;
   }
 
   /* ── Toolbar: wrap and compact ── */
